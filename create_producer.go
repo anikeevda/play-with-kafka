@@ -3,12 +3,18 @@ package main
 import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"log"
-	"time"
 )
 
 func main() {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "broker:9092"})
+	p, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers":                     "broker:9092",
+		"acks":                                  "all",
+		"max.in.flight.requests.per.connection": "1", //VERY IMPORTANT,
+		"compression.type":                      "none",
+		"retries":                               "3",
+		"client.id":                             "producer",
+		"enable.idempotence":                    "true", //VERY IMPORTANT
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -31,29 +37,30 @@ func main() {
 
 	// Produce messages to topic (asynchronously)
 	topic := "myTopic"
-	for _, word := range []string{"Welcome", "to", "the", "Confluent", "Kafka", "Golang", "client"} {
+	for _, word := range []string{"Welcome", "to"} {
+		p.Produce(&kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny}, //Partition any IS IMPORTANT TO USE HASH ALGORITHM ON KEY
+			Key:            []byte("messageId"),
+			Value:          []byte(word),
+		}, nil)
+	}
+
+	for _, word := range []string{"the", "Confluent"} {
 		p.Produce(&kafka.Message{
 			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Key:            []byte("3920892"),
+			Value:          []byte(word),
+		}, nil)
+	}
+
+	for _, word := range []string{"Kafka", "Golang", "client"} {
+		p.Produce(&kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Key:            []byte("3232dlsk392dskjd1rgf"),
 			Value:          []byte(word),
 		}, nil)
 	}
 
 	// Wait for message deliveries before shutting down
 	p.Flush(15 * 1000)
-	log.Println("here1")
-	c1 := make(chan string, 1)
-	go func() {
-		time.Sleep(time.Millisecond * 500)
-		c1 <- "result 1"
-	}()
-	for {
-		select {
-		case res := <-c1:
-			fmt.Println(res)
-			return
-		default:
-			fmt.Println("next")
-			time.Sleep(50 * time.Millisecond)
-		}
-	}
 }

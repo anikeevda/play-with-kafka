@@ -11,7 +11,7 @@ import (
 func main() {
 	broker := "broker"
 	topic := "myTopic"
-	numParts := 10
+	numParts := 2
 	replicationFactor := 1
 
 	// Create a new AdminClient.
