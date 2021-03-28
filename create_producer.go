@@ -9,11 +9,12 @@ func main() {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers":                     "broker:9092",
 		"acks":                                  "all",
-		"max.in.flight.requests.per.connection": "1", //VERY IMPORTANT,
+		"max.in.flight.requests.per.connection": 1, //VERY IMPORTANT,
 		"compression.type":                      "none",
-		"retries":                               "3",
+		"retries":                               3,
 		"client.id":                             "producer",
-		"enable.idempotence":                    "true", //VERY IMPORTANT
+		"enable.idempotence":                    true,       //VERY IMPORTANT,
+		"auto.offset.reset":                     "earliest", //VERY IMPORTANT
 	})
 	if err != nil {
 		panic(err)

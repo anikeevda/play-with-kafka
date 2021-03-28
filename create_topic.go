@@ -12,7 +12,6 @@ func main() {
 	broker := "broker"
 	topic := "myTopic"
 	numParts := 2
-	replicationFactor := 1
 
 	// Create a new AdminClient.
 	// AdminClient can also be instantiated using an existing
@@ -42,18 +41,8 @@ func main() {
 		// by providing more TopicSpecification structs here.
 		[]kafka.TopicSpecification{{
 			Topic:             topic,
-			NumPartitions:     numParts, //default 1
-			ReplicationFactor: replicationFactor,
-			Config: map[string]string{
-				"cleanup.policy":   "compact",      //This string designates the retention policy to use on old log segments,
-				"compression.type": "uncompressed", //default value is "producer"
-				//delete.retention.ms - function unclear
-				//file.delete.delay.ms - function unclear
-				//flush.messages - function unclear
-				//flush.ms - function unclear
-				"min.insync.replicas": "1", //VERY IMPORTANT
-
-			},
+			NumPartitions:     numParts,
+			ReplicationFactor: 1,
 		}},
 		// Admin options
 		kafka.SetAdminOperationTimeout(maxDur))
