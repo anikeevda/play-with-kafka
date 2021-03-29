@@ -44,8 +44,9 @@
 - **session.timeout.ms**, отвечает за то, как долго консьюмер может работать не отправляя хартбит. Должно быть больше
   чем `heartbeat.interval.ms`
 - **allow.auto.create.topics**, default **true**, разрешать или запрещать консьюмеру создавать топик, если его нет
-- **auto.offset.reset**, default **latest**
-- **enable.auto.commit**, default **true**
+- **auto.offset.reset**, default **latest**, в случае какого-либо сбоя отвечает за то, с какого сообщения консьюмер
+  начнет вычитывать - с саммого ранненого или с самого позднего
+- **enable.auto.commit**, default **true**, отвечает за то, будет ли производиться автоматический коммит оффсета
 - **max.poll.interval.ms**, default **300000**, максимальная задержка между вызовами функции `poll()`. По истечении
   времени, консьюмер будет считаться мертвым и начнется ребалансировка
 - **partition.assignment.strategy**, default **class org.apache.kafka.clients.consumer.RangeAssignor**, способ
