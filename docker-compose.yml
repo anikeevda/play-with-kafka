@@ -41,3 +41,12 @@ services:
       KAFKA_COMPRESSION_TYPE: "uncompressed"
       KAFKA_MIN_INSYNC_REPLICAS: 1
       KAFKA_LOG_CLEANUP_POLICY: "compact"
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "broker:29092"
+    depends_on:
+      - broker
