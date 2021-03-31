@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -27,7 +29,10 @@ func main() {
 	// For signalling termination from main to go-routine
 	termChan := make(chan bool, 1)
 	// For signalling that termination is done from go-routine to main
-	doneChan := make(chan bool)
+	doneChan := make(chan bool, 1)
+
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Go routine for serving the events channel for delivery reports and error events.
 	go func() {
@@ -87,39 +92,48 @@ func main() {
 			}
 		}
 
+		fmt.Println("prepare to end")
 		close(doneChan)
 	}()
 
 	msgcnt := 0
+
 	for run == true {
-		value := fmt.Sprintf("Go Idempotent Producer example, message #%d", msgcnt)
+		select {
+		case <-sigchan:
+			fmt.Println("Caught signal")
+			run = false
+		default:
+			value := fmt.Sprintf("Go Idempotent Producer example, message #%d", msgcnt)
 
-		// Produce message.
-		// This is an asynchronous call, on success it will only
-		// enqueue the message on the internal producer queue.
-		// The actual delivery attempts to the broker are handled
-		// by background threads.
-		// Per-message delivery reports are emitted on the Events() channel,
-		// see the go-routine above.
-		err = p.Produce(&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Value:          []byte(value),
-		}, nil)
+			// Produce message.
+			// This is an asynchronous call, on success it will only
+			// enqueue the message on the internal producer queue.
+			// The actual delivery attempts to the broker are handled
+			// by background threads.
+			// Per-message delivery reports are emitted on the Events() channel,
+			// see the go-routine above.
+			err = p.Produce(&kafka.Message{
+				TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+				Key:            []byte("dsdsd"),
+				Value:          []byte(value),
+			}, nil)
 
-		if err != nil {
-			fmt.Printf("Failed to produce message: %v\n", err)
+			if err != nil {
+				fmt.Printf("Failed to produce message: %v\n", err)
+			}
+
+			msgcnt++
+
+			// Since fatal errors can't be triggered in practice,
+			// use the test API to trigger a fabricated error after some time.
+			if msgcnt == 13 {
+				p.TestFatalError(kafka.ErrOutOfOrderSequenceNumber, "Testing fatal errors")
+			}
+
+			time.Sleep(500 * time.Millisecond)
+
 		}
-
-		msgcnt++
-
-		// Since fatal errors can't be triggered in practice,
-		// use the test API to trigger a fabricated error after some time.
-		if msgcnt == 13 {
-			p.TestFatalError(kafka.ErrOutOfOrderSequenceNumber, "Testing fatal errors")
-		}
-
-		time.Sleep(500 * time.Millisecond)
-
 	}
 
 	// Clean termination to get delivery results
@@ -127,7 +141,6 @@ func main() {
 	fmt.Printf("Flushing outstanding messages\n")
 	p.Flush(15 * 1000)
 
-	// signal termination to go-routine
 	termChan <- true
 	// wait for go-routine to terminate
 	<-doneChan
